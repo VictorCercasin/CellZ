@@ -11,14 +11,14 @@ from .utils import show_images_fitted
 
 def label_image(masked_image, centroids):
     """
-    Add numbered labels to detected cells
+    Add numbered labels to detected cells and total count in corner
     
     Args:
         masked_image: Original masked image
         centroids: List of (x, y) coordinates for cell centers
         
     Returns:
-        Image with green numbered labels on each cell
+        Image with green numbered labels on each cell and total count
     """
     labeled_image = masked_image.copy()
     
@@ -27,6 +27,12 @@ def label_image(masked_image, centroids):
         # Add green text label
         cv.putText(labeled_image, str(i), (cx-5, cy+5),  # Slight offset for better visibility
                    cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)  # Green color, thickness 2
+    
+    # Add total count in the top-left corner
+    total_count = len(centroids)
+    count_text = f"Total: {total_count}"
+    cv.putText(labeled_image, count_text, (30, 80),  # Top-left corner with margin
+               cv.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 3)  # Slightly larger font for visibility
     
     return labeled_image
 
@@ -115,7 +121,7 @@ def find_cell_centroids(masked_image):
                     cv.circle(used_mask, (cx, cy), EXCLUSION_RADIUS, 255, -1)
         
         all_centroids.extend(good_nuclei_this_round)
-        print(f"Iteration {iteration}: Found {len(good_nuclei_this_round)} new nuclei")
+        # print(f"Iteration {iteration}: Found {len(good_nuclei_this_round)} new nuclei")
         
         # Stop if no good nuclei found this round
         if len(good_nuclei_this_round) == 0:
@@ -123,6 +129,8 @@ def find_cell_centroids(masked_image):
             
         # Dilate back partially
         eroded_nuclei_binary = cv.dilate(eroded_nuclei_binary, kernel_erode, iterations=3)
+
+    all_centroids = remove_close_duplicates(all_centroids)
     
     return all_centroids
 
@@ -220,7 +228,7 @@ def crop_image(image):
     _, binary = cv.threshold(gray, adjusted_threshold, 255, cv.THRESH_BINARY)
     
     # Debug: print threshold values
-    print(f"Original Otsu threshold: {threshold_value:.1f}, Adjusted: {adjusted_threshold:.1f}")
+    # print(f"Original Otsu threshold: {threshold_value:.1f}, Adjusted: {adjusted_threshold:.1f}")
     
     # Find all contours
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -229,7 +237,7 @@ def crop_image(image):
     min_area = 1000
     large_contours = [c for c in contours if cv.contourArea(c) > min_area]
     
-    print(f"Total contours: {len(contours)}, Large contours: {len(large_contours)}")
+    # print(f"Total contours: {len(contours)}, Large contours: {len(large_contours)}")
     
     # ... rest of your function stays the same
     

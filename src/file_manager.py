@@ -26,7 +26,7 @@ def save_processed_image(input_path, processed_image):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Save as JPG with good quality
-    success = cv.imwrite(str(output_path), processed_image, [cv.IMWRITE_JPEG_QUALITY, 95])
+    success = cv.imwrite(str(output_path), processed_image, [cv.IMWRITE_JPEG_QUALITY, 100])
     
     # if success:
     #     print(f"Saved: {relative_path}")

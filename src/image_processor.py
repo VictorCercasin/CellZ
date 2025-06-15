@@ -1,4 +1,3 @@
-
 import cv2 as cv
 import numpy as np
 import pillow_heif
@@ -7,7 +6,29 @@ from PIL import Image
 from time import sleep
 
 from .utils import show_images_fitted
+from .file_manager import save_processed_image
 
+# Global variable to control saving of intermediate images
+SAVE_POST_IMAGES = True  # Set to True to save all intermediate steps
+
+def save_post_image(filename, image, quality=100):
+    """
+    Save image to imagens_post folder only if SAVE_POST_IMAGES is True
+    
+    Args:
+        filename: Name of the file to save
+        image: Image array to save
+        quality: JPEG quality (default 100)
+    """
+    if not SAVE_POST_IMAGES:
+        return
+    
+    # Create directory if it doesn't exist
+    post_dir = Path('imagens_post')
+    post_dir.mkdir(exist_ok=True)
+    
+    # Save the image
+    cv.imwrite(str(post_dir / filename), image, [cv.IMWRITE_JPEG_QUALITY, quality])
 
 def label_image(masked_image, centroids):
     """
@@ -44,10 +65,13 @@ def find_cell_centroids(masked_image):
     MIN_AREA = 20
     MAX_AREA = 200
     EXCLUSION_RADIUS = 60
+    ITERATION_CUTOFF = 2
     
     # Extract channels
     blue_channel = masked_image[:, :, 0]
     green_channel = masked_image[:, :, 1]
+
+    save_post_image('8 - blue channel.jpeg', blue_channel)
     
     # Sample mask (non-black areas from circle masking)
     sample_mask = cv.cvtColor(masked_image, cv.COLOR_BGR2GRAY) > 0
@@ -60,11 +84,18 @@ def find_cell_centroids(masked_image):
     threshold_value, _ = cv.threshold(blue_masked, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
     adjusted_threshold = threshold_value * BACKGROUND_THRESHOLD_BIAS
     _, cellular_mask = cv.threshold(blue_masked, adjusted_threshold, 255, cv.THRESH_BINARY_INV)
+
+    save_post_image('9 - blue channel theshold.jpeg', cellular_mask)
     
     # Stage 2: Use green channel to find nuclei within cellular areas
     green_masked = green_channel.copy()
     green_masked[~sample_mask] = 128
     green_masked[cellular_mask == 0] = 128
+
+    masked_image_removed_bg = masked_image.copy()
+    masked_image_removed_bg[~sample_mask] = 128
+    masked_image_removed_bg[cellular_mask == 0] = 128
+    save_post_image('11 - original cells only.jpeg', masked_image_removed_bg)
     
     # Stage 2.5: Apply Gaussian blur to smooth the green channel
     green_blurred = cv.GaussianBlur(green_masked, (5, 5), 1.0)
@@ -81,6 +112,13 @@ def find_cell_centroids(masked_image):
     # Apply the more restrictive threshold
     _, nuclei_binary = cv.threshold(green_blurred, restrictive_threshold, 255, cv.THRESH_BINARY_INV)
     
+    save_post_image('12 - nucleus only.jpeg', nuclei_binary)
+
+    masked_image_nuclei_only = masked_image_removed_bg.copy()
+    masked_image_nuclei_only[nuclei_binary == 0] = 128
+
+    save_post_image('12 - original nuclei only.jpeg', masked_image_nuclei_only)
+
     # Keep only cellular areas
     nuclei_binary[~cellular_areas] = 0
     
@@ -89,23 +127,30 @@ def find_cell_centroids(masked_image):
     kernel_small = np.ones((3,3), np.uint8)
     nuclei_binary = cv.morphologyEx(nuclei_binary, cv.MORPH_OPEN, kernel_small)
     
+    save_post_image('13 - clean up noise.jpeg', nuclei_binary)
+    
     # Erode to separate touching nuclei
     kernel_erode = np.ones((3,3), np.uint8)
 
-    
     all_centroids = []
     used_mask = np.zeros_like(nuclei_binary)
 
     eroded_nuclei_binary = nuclei_binary
     for iteration in range(100):
-        # Erode to separate more nuclei
+       # Erode to separate more nuclei
         eroded_nuclei_binary = cv.erode(eroded_nuclei_binary, kernel_erode, iterations=5)
-        
+
+        # Create a color version for visualization with green dots
+        eroded_with_dots = cv.cvtColor(eroded_nuclei_binary, cv.COLOR_GRAY2BGR)
+        for cx, cy in all_centroids:  # Show ALL cells found so far
+            cv.circle(eroded_with_dots, (cx, cy), 4, (0, 255, 0), 2)  # Green dots
+        save_post_image(f'14 {iteration} - eroded.jpeg', eroded_with_dots)
+
         # Find connected components
         num_labels, labels, stats, centroids = cv.connectedComponentsWithStats(eroded_nuclei_binary)
-        
+
         good_nuclei_this_round = []
-        
+
         for i in range(1, num_labels):
             area = stats[i, cv.CC_STAT_AREA]
             
@@ -117,18 +162,48 @@ def find_cell_centroids(masked_image):
                 if used_mask[cy, cx] == 0:
                     good_nuclei_this_round.append((cx, cy))
                     
-                    # Mark a circular area around this centroid as used
-                    cv.circle(used_mask, (cx, cy), EXCLUSION_RADIUS, 255, -1)
-        
-        all_centroids.extend(good_nuclei_this_round)
-        # print(f"Iteration {iteration}: Found {len(good_nuclei_this_round)} new nuclei")
-        
+                    if iteration > ITERATION_CUTOFF:
+                        # Mark a circular area around this centroid as used
+                        cv.circle(used_mask, (cx, cy), EXCLUSION_RADIUS, 255, -1)
+
+        if iteration > ITERATION_CUTOFF:
+            all_centroids.extend(good_nuclei_this_round)
+
+        # Create visualization with ALL detected cells so far
+        progress_image = masked_image.copy()  # Use original color image
+        for cx, cy in all_centroids:  # Show ALL cells found so far
+            cv.circle(progress_image, (cx, cy), 4, (0, 255, 0), 2)  # Green dots
+
+        # # Add iteration info and count
+        # cv.putText(progress_image, f"Iteration: {iteration}", (10, 30), 
+        #         cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        # cv.putText(progress_image, f"Cells found: {len(all_centroids)}", (10, 60), 
+        #         cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+        # # Save the progress visualization
+        # save_post_image(f'14 {iteration} - progress.jpg', progress_image)
+
         # Stop if no good nuclei found this round
         if len(good_nuclei_this_round) == 0:
             break
             
         # Dilate back partially
         eroded_nuclei_binary = cv.dilate(eroded_nuclei_binary, kernel_erode, iterations=3)
+
+        # Create color version for dilated visualization
+        dilated_with_dots = cv.cvtColor(eroded_nuclei_binary, cv.COLOR_GRAY2BGR)
+        for cx, cy in all_centroids:  # Show ALL cells found so far
+            cv.circle(dilated_with_dots, (cx, cy), 4, (0, 255, 0), 2)  # Green dots
+        save_post_image(f'14 {iteration} - dilated.jpeg', dilated_with_dots)
+
+    # Add iteration info and count
+    cv.putText(progress_image, f"Iteration: {iteration}", (10, 30), 
+            cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv.putText(progress_image, f"Cells found: {len(all_centroids)}", (10, 60), 
+            cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    # Save the progress visualization
+    save_post_image(f'15  finished.jpg', progress_image)
 
     all_centroids = remove_close_duplicates(all_centroids)
     
@@ -152,12 +227,12 @@ def remove_close_duplicates(centroids, min_distance=50):
     
     return filtered
 
-
 def remove_background(image):
     TRESHOLD_BIAS = 1.4
     RADIUS_RATIO = 0.93
     
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    save_post_image('5 - greyscale.jpeg', gray)
     
     # Get Otsu threshold value and increase it by 20%
     threshold_value, binary = cv.threshold(gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
@@ -168,6 +243,7 @@ def remove_background(image):
     # Apply the adjusted threshold
     _, binary = cv.threshold(gray, adjusted_threshold, 255, cv.THRESH_BINARY)
 
+    save_post_image('6 - theshold.jpeg', binary)
 
     # Uses dilation to help find the circle
     kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3,3))  # Circular instead of square
@@ -179,7 +255,6 @@ def remove_background(image):
             print(f"Converged after {i} iterations")
             break
         binary = new_binary
-
 
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
@@ -198,7 +273,6 @@ def remove_background(image):
         mask = np.zeros((h, w), dtype=np.uint8)
         cv.circle(mask, center, radius, 255, -1)  # Filled circle
         
-        
         # Draw red circle outline on the original cropped image for visualization
         image_with_circle = image.copy()
         cv.circle(image_with_circle, center, radius, (0, 0, 255), 3)  # Red circle, thickness 3
@@ -209,9 +283,9 @@ def remove_background(image):
         # Set everything outside the circle to black
         result = image.copy()
         result[mask == 0] = [0, 0, 0]
+        save_post_image('7 - bracked out bg.jpeg', result)
         
     return result
-
 
 def crop_image(image):
     TRESHOLD_BIAS = 1.4
@@ -227,19 +301,12 @@ def crop_image(image):
     # Apply the adjusted threshold
     _, binary = cv.threshold(gray, adjusted_threshold, 255, cv.THRESH_BINARY)
     
-    # Debug: print threshold values
-    # print(f"Original Otsu threshold: {threshold_value:.1f}, Adjusted: {adjusted_threshold:.1f}")
-    
     # Find all contours
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     
     # Filter out very small contours (noise)
     min_area = 1000
     large_contours = [c for c in contours if cv.contourArea(c) > min_area]
-    
-    # print(f"Total contours: {len(contours)}, Large contours: {len(large_contours)}")
-    
-    # ... rest of your function stays the same
     
     if not large_contours:
         print("No large contours found!")
@@ -270,9 +337,12 @@ def crop_image(image):
         print("Cropped image is empty!")
         return image
     
+    save_post_image('1 - Original.jpeg', image)
+    save_post_image('2 - greyscale.jpeg', gray)
+    save_post_image('3 - threshold.jpeg', binary)
+    save_post_image('4 - cropped.jpeg', cropped_color)
+    
     return cropped_color
-
-
 
 def read_image(image_path):
     """
@@ -284,8 +354,6 @@ def read_image(image_path):
     
     if extension == '.heic':
         try:
-            
-            
             # Register HEIF opener with Pillow
             pillow_heif.register_heif_opener()
             

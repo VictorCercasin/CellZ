@@ -28,14 +28,7 @@ def main():
         labeled_image = label_image(clean_image, centroids)
         # Saves image in mirror directory
         save_processed_image(img_path, labeled_image)
-
-
-
-
-
-
-
-
+        # return
 
 
 if __name__ == "__main__":

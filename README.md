@@ -1,6 +1,6 @@
 # CellZ - Automated Cell Counter
 
-[🇺🇸 English](README.md) | **🇧🇷 Português**
+**🇺🇸 English** | [🇧🇷 Português](README_pt.md)
 
 > CellZ is an automated cell counting tool designed to help researchers analyze *Allium cepa* (onion) cells in microscope slide images. It uses advanced computer vision techniques to detect and count individual cell nuclei with high accuracy.
 

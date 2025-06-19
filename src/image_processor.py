@@ -9,7 +9,7 @@ from .utils import show_images_fitted
 from .file_manager import save_processed_image
 
 # Global variable to control saving of intermediate images
-SAVE_POST_IMAGES = True  # Set to True to save all intermediate steps
+SAVE_POST_IMAGES = False  # Set to True to save all intermediate steps
 
 def save_post_image(filename, image, quality=100):
     """
@@ -64,8 +64,9 @@ def find_cell_centroids(masked_image):
     FOREGROUND_THRESHOLD_BIAS = 1
     MIN_AREA = 20
     MAX_AREA = 200
-    EXCLUSION_RADIUS = 60
+    EXCLUSION_RADIUS = 40
     ITERATION_CUTOFF = 2
+    MAX_ITERATIONS = 20
     
     # Extract channels
     blue_channel = masked_image[:, :, 0]
@@ -136,7 +137,7 @@ def find_cell_centroids(masked_image):
     used_mask = np.zeros_like(nuclei_binary)
 
     eroded_nuclei_binary = nuclei_binary
-    for iteration in range(100):
+    for iteration in range(MAX_ITERATIONS):
        # Erode to separate more nuclei
         eroded_nuclei_binary = cv.erode(eroded_nuclei_binary, kernel_erode, iterations=5)
 

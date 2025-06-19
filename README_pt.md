@@ -1,6 +1,6 @@
 # CellZ - Contador Automático de Células
 
-**🇺🇸 English** | [🇧🇷 Português](README_pt.md)
+[🇺🇸 English](README.md) | **🇧🇷 Português**
 
 > CellZ é uma ferramenta automatizada para contagem de células projetada para ajudar pesquisadores a analisar células de *Allium cepa* (cebola) em imagens de lâminas de microscópio. Utiliza técnicas avançadas de visão computacional para detectar e contar núcleos celulares individuais com alta precisão.
 

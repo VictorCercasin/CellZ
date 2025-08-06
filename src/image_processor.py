@@ -9,7 +9,7 @@ from .utils import show_images_fitted
 from .file_manager import save_processed_image
 
 # Global variable to control saving of intermediate images
-INTERMEDIARY_IMAGES = True  # Set to True to save all intermediate steps
+INTERMEDIARY_IMAGES = False  # Set to True to save all intermediate steps
 
 def save_post_image(filename, image, quality=100):
     """

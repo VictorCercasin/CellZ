@@ -1,6 +1,7 @@
 IMAGENS/
 IMAGENS ANOTADAS/
 imagens_post/
+intermediaries
 *.zip
 *.ico
 *.exe

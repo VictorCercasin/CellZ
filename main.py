@@ -5,7 +5,12 @@ from src import (get_img_list, setup_directories, crop_image, show_images_fitted
                  , find_cell_centroids, label_image, save_processed_image)
 from time import sleep
 
+import sys
 import cv2 as cv
+
+# Add at the top of main.py
+if hasattr(sys, '_MEIPASS'):  # Running as PyInstaller executable
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
 
 
 def main():

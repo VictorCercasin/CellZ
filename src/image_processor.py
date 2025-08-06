@@ -9,22 +9,22 @@ from .utils import show_images_fitted
 from .file_manager import save_processed_image
 
 # Global variable to control saving of intermediate images
-SAVE_POST_IMAGES = False  # Set to True to save all intermediate steps
+INTERMEDIARY_IMAGES = True  # Set to True to save all intermediate steps
 
 def save_post_image(filename, image, quality=100):
     """
-    Save image to imagens_post folder only if SAVE_POST_IMAGES is True
+    Save image to intermediaries folder only if INTERMEDIARY_IMAGES is True
     
     Args:
         filename: Name of the file to save
         image: Image array to save
         quality: JPEG quality (default 100)
     """
-    if not SAVE_POST_IMAGES:
+    if not INTERMEDIARY_IMAGES:
         return
     
     # Create directory if it doesn't exist
-    post_dir = Path('imagens_post')
+    post_dir = Path('intermediaries')
     post_dir.mkdir(exist_ok=True)
     
     # Save the image
@@ -95,7 +95,7 @@ def find_cell_centroids(masked_image):
 
     masked_image_removed_bg = masked_image.copy()
     masked_image_removed_bg[~sample_mask] = 128
-    masked_image_removed_bg[cellular_mask == 0] = 128
+    masked_image_removed_bg[cellular_mask == 0] = 0
     save_post_image('11 - original cells only.jpeg', masked_image_removed_bg)
     
     # Stage 2.5: Apply Gaussian blur to smooth the green channel
@@ -116,7 +116,7 @@ def find_cell_centroids(masked_image):
     save_post_image('12 - nucleus only.jpeg', nuclei_binary)
 
     masked_image_nuclei_only = masked_image_removed_bg.copy()
-    masked_image_nuclei_only[nuclei_binary == 0] = 128
+    masked_image_nuclei_only[nuclei_binary == 0] = 0
 
     save_post_image('12 - original nuclei only.jpeg', masked_image_nuclei_only)
 
@@ -346,43 +346,57 @@ def crop_image(image):
     return cropped_color
 
 def read_image(image_path):
-    """
-    Read image from path, handling different formats including HEIC
-    Returns numpy array (BGR format for OpenCV compatibility)
-    """
-    path = Path(image_path)
-    extension = path.suffix.lower()
-    
-    if extension == '.heic':
-        try:
-            # Register HEIF opener with Pillow
-            pillow_heif.register_heif_opener()
-            
-            # Open HEIC file
-            pil_image = Image.open(image_path)
-            
-            # Convert to RGB if needed
-            if pil_image.mode != 'RGB':
-                pil_image = pil_image.convert('RGB')
-            
-            # Convert PIL to numpy array
-            image_array = np.array(pil_image)
-            
-            # Convert RGB to BGR (OpenCV format)
-            image_bgr = cv.cvtColor(image_array, cv.COLOR_RGB2BGR)
-            
-            return image_bgr
-            
-        except ImportError:
-            print("pillow-heif not installed. Install with: pip install pillow-heif")
-            return None
-        except Exception as e:
-            print(f"Error reading HEIC file {image_path}: {e}")
-            return None
-    
-    else:
-        # Standard formats (jpg, png, jpeg, etc.)
-        image = cv.imread(str(image_path))
-        if image is None:
-            print(f"Could not load image: {image_path}")
-        return image
+   """
+   Read image from path, handling different formats including HEIC and Unicode paths
+   Returns numpy array (BGR format for OpenCV compatibility)
+   """
+   path = Path(image_path)
+   extension = path.suffix.lower()
+   
+   if extension == '.heic':
+       try:
+           # Register HEIF opener with Pillow
+           pillow_heif.register_heif_opener()
+           
+           # Open HEIC file
+           pil_image = Image.open(image_path)
+           
+           # Convert to RGB if needed
+           if pil_image.mode != 'RGB':
+               pil_image = pil_image.convert('RGB')
+           
+           # Convert PIL to numpy array
+           image_array = np.array(pil_image)
+           
+           # Convert RGB to BGR (OpenCV format)
+           image_bgr = cv.cvtColor(image_array, cv.COLOR_RGB2BGR)
+           
+           return image_bgr
+           
+       except ImportError:
+           print("pillow-heif not installed. Install with: pip install pillow-heif")
+           return None
+       except Exception as e:
+           print(f"Error reading HEIC file {image_path}: {e}")
+           return None
+   
+   else:
+       # Standard formats (jpg, png, jpeg, etc.) com suporte a Unicode
+       try:
+           # Lê o arquivo como bytes
+           with open(image_path, 'rb') as f:
+               image_data = f.read()
+           
+           # Converte bytes para numpy array
+           nparr = np.frombuffer(image_data, np.uint8)
+           
+           # Decodifica a imagem
+           image = cv.imdecode(nparr, cv.IMREAD_COLOR)
+           
+           if image is None:
+               print(f"Could not load image: {image_path}")
+           return image
+           
+       except Exception as e:
+           print(f"Error reading image file {image_path}: {e}")
+           return None

@@ -13,6 +13,11 @@ def save_processed_image(input_path, processed_image):
         input_path: Original image path (Path object)
         processed_image: Processed image with labels
     """
+    # Verificar se a imagem processada é válida
+    if processed_image is None:
+        print(f"ERRO: Imagem processada é None para {input_path}")
+        return False
+    
     # Calculate relative path from input directory
     input_dir = Path.cwd() / INPUT_DIR
     relative_path = input_path.relative_to(input_dir)
@@ -22,17 +27,24 @@ def save_processed_image(input_path, processed_image):
     output_path = output_dir / relative_path
     output_path = output_path.with_suffix('.jpg')  # Convert all to .jpg
     
+    # Debug: mostrar caminhos
+    print(f"Tentando salvar: {output_path}")
+    
     # Create output subdirectory if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Save as JPG with good quality
-    success = cv.imwrite(str(output_path), processed_image, [cv.IMWRITE_JPEG_QUALITY, 100])
+    # Usar imencode para contornar problemas de encoding
+    success, encoded_image = cv.imencode('.jpg', processed_image, [cv.IMWRITE_JPEG_QUALITY, 100])
     
-    # if success:
-    #     print(f"Saved: {relative_path}")
-    # else:
-    #     print(f"Failed to save: {relative_path}")
-
+    if success:
+        # Escrever o arquivo usando Python nativo
+        with open(output_path, 'wb') as f:
+            f.write(encoded_image.tobytes())
+        print(f"Imagem salva com sucesso: {output_path}")
+        return True
+    else:
+        print(f"ERRO: Falha ao codificar imagem para {output_path}")
+        return False
 def get_img_list(root=INPUT_DIR):
     current_dir = Path.cwd()
     input_dir = current_dir / INPUT_DIR

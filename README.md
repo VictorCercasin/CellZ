@@ -1,70 +1,73 @@
-# CellZ - Automatic Cell Counter
+# CellZ - Contador Automático de Células
 
-**🇺🇸 English** | [🇧🇷 Português](README_pt.md)
+[🇺🇸 English](README_en.md) | **🇧🇷 Português**
 
-> CellZ is an automated cell counting tool designed to help researchers analyze *Allium cepa* (onion) cells in microscope slide images. It uses advanced computer vision techniques to detect and count individual cell nuclei with high precision.
+> CellZ é uma ferramenta automatizada para contagem de células projetada para ajudar pesquisadores a analisar células de *Allium cepa* (cebola) em imagens de lâminas de microscópio. Utiliza técnicas avançadas de visão computacional para detectar e contar núcleos celulares individuais com alta precisão.
 
-## Features
-- ✅ Automatic cell detection and counting using Progressive Erosion Harvesting
-- ✅ Dual-channel analysis for robust nucleus identification
-- ✅ Batch processing with automatic folder structure preservation
-- ✅ Support for multiple image formats (JPEG, PNG, HEIC)
-- ✅ Annotated output images with numbered cells and total count
-- ✅ Handles densely packed and overlapping cells
+## Características
+- ✅ Detecção e contagem automática de células usando Progressive Erosion Harvesting
+- ✅ Análise de duplo canal para identificação robusta de núcleos
+- ✅ Processamento em lote com preservação automática da estrutura de pastas
+- ✅ Suporte para múltiplos formatos de imagem (JPEG, PNG, HEIC)
+- ✅ Imagens de saída anotadas com células numeradas e contagem total
+- ✅ Lida com células densamente agrupadas e sobrepostas
 
-## Requirements
-- Python 3.8 or higher
-- Images taken from microscope eyepiece with circular viewing area
+## Requisitos
+- Python 3.8 ou superior
+- Imagens tiradas da ocular do microscópio com área de visualização circular
 
-## Installation and Usage
+## Instalação e Uso
 
-1. Install Python
+1. Instale o Python
 
-- Visit https://www.python.org/downloads/
-- Download the latest version of Python
-- Run the installation
+- Visite o link https://www.python.org/downloads/
+- Faça o download da versão mais recente do python
+- Execute a instalação
 
 <img src="assets/download_python.png" alt="python" width="400">
 
-⚠️ IMPORTANT: During installation, make sure to check the "Add Python to PATH" or "Add Python to environment variables" option so Python works in the terminal.
+
+
+⚠️ IMPORTANTE: Durante a instalação, certifique-se de marcar a opção "Add Python to PATH" ou "Add Python to environment variables" para que o Python funcione no terminal.
 
 <img src="assets/env_variables.png" alt="python" width="400">
 
-2. Download CellZ
-- At the top of the project page on [GitHub](https://github.com/VictorCercasin/CellZ), click the "Code" button and then "Download ZIP"
-- Extract the file to a directory of your choice
-- If you prefer, use git to clone the project
 
-3. Install dependencies:
-- Navigate to the CellZ folder in file explorer
-- In the **address bar** (where the folder path is shown), delete the text, type `cmd` and press Enter
+2. Faça o download do CellZ
+- No topo da página do projeto no [GitHub](https://github.com/VictorCercasin/CellZ), clique no botão "Code" e em seguida, "Download ZIP"
+- Descomprima o arquivo em um diretório de sua preferência
+- Se preferir, utilize o git para fazer a clonagem do projeto
+
+3. Instale as dependências:
+- Navegue até a pasta do CellZ no explorador de arquivos
+- Na **barra de endereços** (onde mostra o caminho da pasta), delete o texto, digite `cmd` e pressione Enter
 
 <img src="assets/cmd.png" alt="python" width="400">
 
-- In the terminal that opens, run the command:
+- No terminal que abrir, execute o comando:
+
 
 ```bash
 pip install -r requirements.txt
 ```
-
-⚠️ If you get an error, try:
+⚠️ Em caso de erro, tente:
 - `python -m pip install -r requirements.txt`
-- Or restart your computer
-- Or reinstall Python
+- Ou reinicie o computador
+- Ou reinstale o Python
 
-- To run the program, simply type in the terminal:
+- Para executar o programa, basta digitar no terminal o comando:
 ```bash
 python main.py
 ```
 
-4. **First run and operation:**
-- When run for the first time, the program creates two folders: **IMAGENS** (input) and **IMAGENS ANOTADAS** (output)
-- Place your microscope images in the **IMAGENS** folder and run again
-- Processed images with cell counts appear in the **IMAGENS ANOTADAS** directory
-- Already processed images are automatically ignored
+4. **Primeira execução e funcionamento:**
+- Ao ser executado a primeira vez, o programa cria duas pastas: **IMAGENS** (entrada) e **IMAGENS ANOTADAS** (saída)
+- Coloque suas imagens de microscópio na pasta **IMAGENS** e execute novamente
+- Imagens processadas com contagem de células aparecem no diretório **IMAGENS ANOTADAS** 
+- Imagens já processadas são automaticamente ignoradas
 
-5. **Cleaning anomalies:**
-- In some cases, certain regions of images may contain anomalies that make cell counting difficult:
+5. **Limpeza de anomalias:**
+- Em alguns casos, certas regiões das imagens podem conter anomalias que dificultam a contagem das células:
 
 <table>
 <tr>
@@ -72,12 +75,12 @@ python main.py
 <td><img src="assets/1745683145534anotada.jpg" alt="Processed" width="400"></td>
 </tr>
 <tr>
-<td align="center">Original Image</td>
-<td align="center">Annotated Image</td>
+<td align="center">Imagem Original</td>
+<td align="center">Imagem Anotada</td>
 </tr>
 </table>
 
-In these cases, it is recommended that the anomalous region be painted black before counting:
+Nesses casos é aconselhado que a região anômala seja pintada de preto antes da contagem:
 
 <table>
 <tr>
@@ -85,20 +88,22 @@ In these cases, it is recommended that the anomalous region be painted black bef
 <td><img src="assets/1745683145534 -anotada.jpg" alt="Processed" width="400"></td>
 </tr>
 <tr>
-<td align="center">Image with painted anomalies</td>
-<td align="center">Annotated Image</td>
+<td align="center">Imagem com anomalias pintadas</td>
+<td align="center">Imagem Anotada</td>
 </tr>
 </table>
 
-## How It Works
-CellZ uses an innovative **Progressive Erosion Harvesting** algorithm that:
-1. Isolates the circular sample area from the background
-2. Uses blue channel analysis to identify cellular regions
-3. Uses green channel analysis to detect dark nuclei within cells
-4. Iteratively separates touching nuclei using morphological operations
-5. Validates detections based on size and shape criteria
 
-## Example Results
+## Como Funciona
+CellZ utiliza um algoritmo inovador de **Progressive Erosion Harvesting** que:
+1. Isola a área circular da amostra do fundo
+2. Usa análise do canal azul para identificar regiões celulares
+3. Usa análise do canal verde para detectar núcleos escuros dentro das células
+4. Separa iterativamente núcleos em contato usando operações morfológicas
+5. Valida detecções baseado em critérios de tamanho e forma
+
+## Resultados de Exemplo
+
 
 <table>
 <tr>
@@ -106,8 +111,8 @@ CellZ uses an innovative **Progressive Erosion Harvesting** algorithm that:
 <td><img src="assets/1745683144302-anotada.jpg" alt="Processed" width="400"></td>
 </tr>
 <tr>
-<td align="center">Original Image</td>
-<td align="center">Annotated Image</td>
+<td align="center">Imagem Original</td>
+<td align="center">Imagem Anotada</td>
 </tr>
 </table>
 
@@ -117,8 +122,8 @@ CellZ uses an innovative **Progressive Erosion Harvesting** algorithm that:
 <td><img src="assets/1745683144627-anotada.jpg" alt="Processed" width="400"></td>
 </tr>
 <tr>
-<td align="center">Original Image</td>
-<td align="center">Annotated Image</td>
+<td align="center">Imagem Original</td>
+<td align="center">Imagem Anotada</td>
 </tr>
 </table>
 
@@ -128,10 +133,13 @@ CellZ uses an innovative **Progressive Erosion Harvesting** algorithm that:
 <td><img src="assets/1745683145570-anotada.jpg" alt="Processed" width="400"></td>
 </tr>
 <tr>
-<td align="center">Original Image</td>
-<td align="center">Annotated Image</td>
+<td align="center">Imagem Original</td>
+<td align="center">Imagem Anotada</td>
 </tr>
 </table>
 
-Created by [Victor Hugo Cercasin](https://github.com/VictorCercasin/).
-Project Repository [GitHub](https://github.com/VictorCercasin/CellZ).
+
+
+
+Criado por [Victor Hugo Cercasin](https://github.com/VictorCercasin/).
+Repositório do Projeto [GitHub](https://github.com/VictorCercasin/CellZ).
